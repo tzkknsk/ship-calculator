@@ -6,6 +6,9 @@ import streamlit as st
 
 from utils import calculate_ship
 
+# Set page config
+st.set_page_config(layout="wide")
+
 
 def to_excel(
         df_dict: dict[str, pd.DataFrame]
@@ -27,52 +30,89 @@ def to_excel(
     return output
 
 
+# Session State
+save_state_variables = [
+    "uploaded_file",
+    "df_input_matrix",
+    "matrix",
+    "ship",
+    "calc_bottom",
+    "diff_matrix",
+    "df_diff_matrix",
+    "df_ship",
+]
+for var in save_state_variables:
+    if var not in st.session_state:
+        st.session_state[var] = None
+
+ss = st.session_state
+
 st.title("SHIP Calculator App")
 
-with st.container():
+tab1, tab2 = st.tabs(["Upload data", "Download sample file to upload"])
 
+with tab1:
     # Upload data file for analysis
-    uploaded_file = st.file_uploader(
+    ss.uploaded_file = st.file_uploader(
         "Upload data file for calculation of SHIP",
         type="xlsx"
     )
-    if uploaded_file is not None:
 
-        # Load data
-        df_input_matrix = pd.read_excel(uploaded_file, header=None, index_col=None)
+with tab2:
+    sample = pd.read_excel(
+        "data/sample_input.xlsx",
+        header=None,
+        index_col=None
+    )
+    st.download_button(
+        label="Download Sample File",
+        data=to_excel({"sample input": sample}),
+        file_name="sample_input.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
-        # Display data
-        st.header("Input Data")
-        st.dataframe(df_input_matrix)
 
-        calc_bottom = st.button("Calculate SHIP")
+if ss.uploaded_file is not None:
 
-        if calc_bottom:
+    # Load data
+    ss.df_input_matrix = pd.read_excel(
+        ss.uploaded_file,
+        header=None,
+        index_col=None
+    )
 
-            # Calculate SHIP
-            matrix = df_input_matrix.to_numpy()
-            ship, diff_matrix = calculate_ship(matrix)
+    # Display data
+    st.header("Input Data")
+    st.dataframe(ss.df_input_matrix)
 
-            # Display SHIP
-            df_diff_matrix = pd.DataFrame(diff_matrix)
-            df_ship = pd.DataFrame({"SHIP": [ship]})
+    ss.calc_bottom = st.button("Calculate SHIP")
 
-            # Display difference matrix
-            st.header("Results")
-            st.dataframe(df_diff_matrix)
-            st.dataframe(df_ship)
+    if ss.calc_bottom:
 
-            # Download results
-            df_dict = {
-                "Input Matrix": df_input_matrix,
-                "Difference Matrix": df_diff_matrix,
-                "SHIP": df_ship
-            }
+        # Calculate SHIP
+        ss.matrix = ss.df_input_matrix.to_numpy()
+        ss.ship, ss.diff_matrix = calculate_ship(ss.matrix)
 
-            output = to_excel(df_dict)
-            st.download_button(
-                label="Download Results",
-                data=output,
-                file_name=f"result_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+        # Display SHIP
+        ss.df_diff_matrix = pd.DataFrame(ss.diff_matrix)
+        ss.df_ship = pd.DataFrame({"SHIP": [ss.ship]})
+
+        # Display difference matrix
+        st.header("Results")
+        st.dataframe(ss.df_diff_matrix)
+        st.dataframe(ss.df_ship)
+
+        # Download results
+        df_dict = {
+            "Input Matrix": ss.df_input_matrix,
+            "Difference Matrix": ss.df_diff_matrix,
+            "SHIP": ss.df_ship
+        }
+
+        output = to_excel(df_dict)
+        st.download_button(
+            label="Download Results",
+            data=output,
+            file_name=f"calculated_SHIP_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
