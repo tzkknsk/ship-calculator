@@ -54,7 +54,7 @@ tab1, tab2 = st.tabs(["Upload data", "Download sample file to upload"])
 with tab1:
     # Upload data file for analysis
     ss.uploaded_file = st.file_uploader(
-        "Upload data file for calculation of SHIP",
+        "Upload data file to calculatte SHIP",
         type="xlsx"
     )
 
